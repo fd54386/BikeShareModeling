@@ -1,6 +1,9 @@
 ---
 title: "Daily Modeling Report"
-output: github_document
+output: 
+ github_document:
+    toc: TRUE
+    toc_depth: 2
 ---
 
 ```{r setup, include=FALSE}
@@ -117,10 +120,10 @@ The final model had a training RMSE of `r min(treeFit$results$RMSE)` on a tuning
 ## Gradient Boosted Tree  
 
 We will omit the following variables from the predictors:  
-* instant -- the data index, doesn't contain any real information.  
-* dteday -- potentially confounds the other date variables.  
-* weekday -- This is dependent on the day of week of the report, and will be a constant for every observation.
-* workingday -- Since this report is based on a single day of the week, this field is the exact opposite of the holiday variable.  Excluding to simplify runtime.  
+* `instant` -- the data index, doesn't contain any real information.  
+* `dteday` -- potentially confounds the other date variables.  
+* `weekday` -- This is dependent on the day of week of the report, and will be a constant for every observation.  
+* `workingday` -- Since this report is based on a single day of the week, this field is redundant, as it is either going to be constant or potentially flip with `holiday`.  Excluding to simplify.  
 
 We will not explicitly call out any interaction terms since the gradient boosting algorithm includes a review of the interaction extent by default -- the interaction.depth parameter.  
 
@@ -156,3 +159,16 @@ The best tuning parameters were:
 The resulted in a training RMSE of `r min(boostFit$results$RMSE)`  
 
 The significant variables in the final model were: `r boostFit$finalModel$var.names`  
+
+## Test Fits
+Now we compare these models against the test set.
+```{r Test Fits}
+#Generate Test Set predictions with the Decision Tree Final Model
+treePrediction<- predict(treeFit, tibTest)
+treeTest<- postResample(treePrediction, tibTest$cnt)
+
+#Generate Test Set prediction with the Gradient Boosted Tree Final Model
+boostedPrediction<- predict(boostFit, tibTest)
+boostTest<- postResample(boostedPrediction, tibTest$cnt)
+```  
+We find on the test set that the `r ifelse(boostTest[1] < treeTest[1], 'Boosted tree had a better test RMSE. ', 'Decision tree had a better RMSE. ')` The boosted tree RMSE was `r round(boostTest[1], 2)` while the decision tree had an RMSE of `r round(treeTest[1], 2)`.  The decision tree had `r round(treeTest[1] / boostTest[1], 3) *100`% of the error of the boosted tree.
