@@ -104,7 +104,16 @@ treeFit <- train(cnt ~ .-instant-dteday-weekday-workingday+
 treeFit
 
 plot(treeFit)
+
+finalTree<- treeFit$finalModel
+
+
+
 ```  
+
+The final model had a training RMSE of `r min(treeFit$results$RMSE)` on a tuning parameter of cp=`r finalTree$tuneValue`.  It has `r nrow(finalTree$frame)` branches and `r nrow(finalTree$frame[finalTree$frame$var == '<leaf>',])` termination points 
+
+
 ## Gradient Boosted Tree  
 
 We will omit the following variables from the predictors:  
@@ -113,20 +122,37 @@ We will omit the following variables from the predictors:
 * weekday -- This is dependent on the day of week of the report, and will be a constant for every observation.
 * workingday -- Since this report is based on a single day of the week, this field is the exact opposite of the holiday variable.  Excluding to simplify runtime.  
 
-We will not explicitly call out any interaction terms since the gradient boosting algorithm includes a review of the interaction extent by default.  
+We will not explicitly call out any interaction terms since the gradient boosting algorithm includes a review of the interaction extent by default -- the interaction.depth parameter.  
 
 ### Cross Validation  
 We will use 5-fold repeated cv for cross validating the boosted fit.  This should be faster than the leave-one-out fit we used on the previous model.  
+
 ```{r Boosted CV}
 cvInfo <- trainControl(method = 'repeatedcv', number = 5, repeats = 3)
 ```
 
 ### Fit the Gradient Boosted Tree  
 We are running the `gbm` method in the `caret` package.  We will use the default tuning algorithm as it should be more robust than a generic grid search in an automated report.  
-```{r Boosted Tree}
+```{r Boosted Tree, results = 'hide'}
 set.seed(3333)
 # Run the model with centered & scaled data, default tuning grid
-boostFit <- train(class ~ ., data = tibTrain, method = "gbm",
- trControl=cvInfo)
+boostFit <- train(cnt ~ .-instant-dteday-weekday-workingday,
+                  data = tibTrain, method = "gbm", trControl=cvInfo)
+```  
+```{r Boosted Results}
+#Review the numeric results of the fit
+boostFit
+#Graphic representation of the tuning parameters vs RMSE
+plot(boostFit)
+
 ```
 
+The best tuning parameters were:  
+* n.trees: `r boostFit$bestTune$n.trees`  
+* interaction.depth: `r boostFit$bestTune$interaction.depth`  
+* shrinkage: .1 (default)  
+* n.minobsinnode: 10 (default)  
+
+The resulted in a training RMSE of `r min(boostFit$results$RMSE)`  
+
+The significant variables in the final model were: `r boostFit$finalModel$var.names`  
