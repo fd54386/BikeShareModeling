@@ -4,12 +4,14 @@ output:
  github_document:
     toc: TRUE
     toc_depth: 2
+params:
+    DOW: 1
 ---
 
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE)
 ```
-```{r setup packages}
+```{r setup packages, message = FALSE}
 library(tidyverse)
 library(caret)  
 library(knitr)
@@ -19,23 +21,24 @@ dfDOW<- data.frame(num<- 0:6, name <- c('Sunday', 'Monday', 'Tuesday', 'Wednesda
 # Introduction 
 
 We are working with a bikeshare dataset.  The number of bike renters using a Washington, D.C. based rental service on a daily basis from 2011-2012 was aggregated by researchers and made [available](https://archive.ics.uci.edu/ml/datasets/Bike+Sharing+Dataset).  There are 16 variables in the daily dataset.  
+
 * 1 Meta column, indicating the index of the observation in the dataset.  
 * 7 date related columns -- the date itself, as well as helper variables indicating if it was a workday / holiday / etc.
 * 5 weather related columns -- a grade for precipitation, as well as fields for temperature, heat index, humidity, and windspeed  
 * 3 response variables -- A count of casual users, registered users, and the total count  
 
-This report is focused on predicting the total user count on any `r dfDOW[1, 2]` given the date and weather information.  
+This report is focused on predicting the total user count on any `r dfDOW[params$DOW+1, 2]` given the date and weather information.  
 
 We will perform this modeling using both a simple decision tree with leave-one-out cross validation, as well as a gradient boosted tree model with 5-fold cross validation.
 
-# Data  
+# Data, `r dfDOW[params$DOW+1, 2]`s   
 
 For linear modeling we would typically convert most of the discrete derived date variables as a factor to ensure that something like the cyclical nature of the seasons are treated more appropriately.  A decision tree with a sufficient number of levels should be able to reasonably account for nonlinear behavior, so we will not factorize those variables for this modeling.
 ```{r Import and Split Data}
 #Import the data
 tibDaily<- read_csv('day.csv')
 
-tibDOW<- tibDaily%>% filter(weekday == '1')%>% select(-casual, -registered)
+tibDOW<- tibDaily%>% filter(weekday == params$DOW)%>% select(-casual, -registered)
 
 set.seed(1)
 train <-sample(1:nrow(tibDOW), size =nrow(tibDOW)*0.7)
@@ -46,7 +49,7 @@ tibTest <- tibDOW[test, ]
 
 # Training Data Summary 
 
-This is a quick overview of the training dataset for this `r dfDOW[1, 2]` report.  It will be good to look at the number of holidays and working days in this set.  We will also plot the ridership trends vs time, and the relationship with the weather variables.  Note that the data has already been standardized, so we will not rescale it further.
+This is a quick overview of the training dataset for this `r dfDOW[params$DOW+1, 2]` report.  It will be good to look at the number of holidays and working days in this set.  We will also plot the ridership trends vs time, and the relationship with the weather variables.  Note that the data has already been standardized, so we will not rescale it further.
 
 ```{r Exploratory Plots, warning = FALSE}
 #Summarize holiday performance
@@ -74,12 +77,14 @@ ggplot (data = tibWeather, mapping = aes(x = value, y = cnt)) + geom_point() +
 We will start by fitting a simple decision tree using the caret package.   
 
 We will omit the following variables from the predictors:  
+
 * instant -- the data index, doesn't contain any real information.  
 * dteday -- potentially confounds the other date variables.  
 * weekday -- This is dependent on the day of week of the report, and will be a constant for every observation.
 * workingday -- Since this report is based on a single day of the week, this field is the exact opposite of the holiday variable.  Excluding to simplify runtime.  
 
 We will also add in the following interaction terms since they'd likely influence someone's desire to spend time outside of cover:  
+
 * temp:holiday 
 * windspeed:weathersit
 * hum:temp
@@ -120,6 +125,7 @@ The final model had a training RMSE of `r min(treeFit$results$RMSE)` on a tuning
 ## Gradient Boosted Tree  
 
 We will omit the following variables from the predictors:  
+
 * `instant` -- the data index, doesn't contain any real information.  
 * `dteday` -- potentially confounds the other date variables.  
 * `weekday` -- This is dependent on the day of week of the report, and will be a constant for every observation.  
@@ -136,7 +142,7 @@ cvInfo <- trainControl(method = 'repeatedcv', number = 5, repeats = 3)
 
 ### Fit the Gradient Boosted Tree  
 We are running the `gbm` method in the `caret` package.  We will use the default tuning algorithm as it should be more robust than a generic grid search in an automated report.  
-```{r Boosted Tree, results = 'hide'}
+```{r Boosted Tree, results = 'hide', warning = FALSE}
 set.seed(3333)
 # Run the model with centered & scaled data, default tuning grid
 boostFit <- train(cnt ~ .-instant-dteday-weekday-workingday,
@@ -151,6 +157,7 @@ plot(boostFit)
 ```
 
 The best tuning parameters were:  
+
 * n.trees: `r boostFit$bestTune$n.trees`  
 * interaction.depth: `r boostFit$bestTune$interaction.depth`  
 * shrinkage: .1 (default)  
@@ -160,7 +167,7 @@ The resulted in a training RMSE of `r min(boostFit$results$RMSE)`
 
 The significant variables in the final model were: `r boostFit$finalModel$var.names`  
 
-## Test Fits
+## Test Fits, `r dfDOW[params$DOW+1, 2]`s  
 Now we compare these models against the test set.
 ```{r Test Fits}
 #Generate Test Set predictions with the Decision Tree Final Model
