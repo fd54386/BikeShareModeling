@@ -53,29 +53,7 @@ those variables for this modeling.
 ``` r
 #Import the data
 tibDaily<- read_csv('day.csv')
-```
 
-    ## Parsed with column specification:
-    ## cols(
-    ##   instant = col_double(),
-    ##   dteday = col_date(format = ""),
-    ##   season = col_double(),
-    ##   yr = col_double(),
-    ##   mnth = col_double(),
-    ##   holiday = col_double(),
-    ##   weekday = col_double(),
-    ##   workingday = col_double(),
-    ##   weathersit = col_double(),
-    ##   temp = col_double(),
-    ##   atemp = col_double(),
-    ##   hum = col_double(),
-    ##   windspeed = col_double(),
-    ##   casual = col_double(),
-    ##   registered = col_double(),
-    ##   cnt = col_double()
-    ## )
-
-``` r
 tibDOW<- tibDaily%>% filter(weekday == params$DOW)%>% select(-casual, -registered)
 
 set.seed(1)
@@ -97,11 +75,7 @@ already been standardized, so we will not rescale it further.
 #Summarize holiday performance
 tibSumm <- tibTrain %>% group_by(holiday)%>% 
   summarize(count = n(), avgRidership = mean(cnt, na.rm = TRUE))
-```
 
-    ## `summarise()` ungrouping output (override with `.groups` argument)
-
-``` r
 #Plot out trends vs date
 ggplot(data = tibTrain, mapping = aes(x = dteday, y = cnt, color = as.factor(season),
   shape = as.factor(workingday))) + geom_point()+

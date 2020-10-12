@@ -27,11 +27,11 @@ Reports can be found at the links below.  Format is structured identically acros
 
 ## Required Packages  
 
+There are two scripts for this project.  The first, this readme, requires the `tidyverse`, `knitr`, and `rmarkdown` packages.  The second, the report generator, also requires the `caret` package to run the modeling.
 
-```{r package setup, echo = FALSE, message = FALSE, warning = FALSE}
+```{r package processing, message = FALSE, warning = FALSE}
 library(tidyverse)
 library(knitr)
-library(haven)
 library(rmarkdown)
 
 options(dplyr.print_min = 5)
@@ -39,12 +39,12 @@ options(tibble.print_min = 5)
 opts_chunk$set(message = FALSE, cache = TRUE)
 ```
 
-## 
+## Rendering the 7 Reports  
+The below code generates parameters to pass into the render function so that we can name our file and evaluate for the desired day.  The `DOW` parameter is used in the Daily Modeling Report.Rmd to determine which day is being modeled.  
 
+This code is run [separately](Render Script.R), outside of this markdown file, but with the above packages.  There is interference between the setup call in this file and that of the Daily Modeling Report that otherwise prevents the extra outputs.
 
-
-
-```{r Parametric Report Generation}
+```{r Parametric Report Generation, eval = FALSE}
 #Create a vector of filenames for outputs
 filenames <- c('Sunday.md','Monday.md','Tuesday.md', 
               'Wednesday.md', 'Thursday.md', 'Friday.md', 'Saturday.md')
